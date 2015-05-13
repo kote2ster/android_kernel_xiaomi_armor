@@ -9,7 +9,7 @@
  * kind, whether express or implied.
  *
  */
- 
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -22,52 +22,60 @@
 #include "../w1_family.h"
 #include <linux/delay.h>
 
+// ROM Commands in Command Level 1
+#define BQ2022_COMMAND_READ_SERIALIZATION_ROM_AND_CRC	0x33
+#define BQ2022_COMMAND_MATCH_SERIALIZATION_ROM		0x55
+#define BQ2022_COMMAND_SEARCH_SERIALIZATION_ROM		0xF0
+#define BQ2022_COMMAND_SKIP_SERIALIZATION_ROM		0xCC
 
-#define HDQ_CMD_SKIP_ROM (0xCC)
-#define HDQ_CMD_READ_FIELD (0xF0)
+// Memory Function Commands in Command Level 2
+#define BQ2022_COMMAND_READ_MEMORY_FIELD_CRC		0xF0
+#define BQ2022_COMMAND_READ_EPROM_STATUS		0xAA
+#define BQ2022_COMMAND_READ_MEMORY_PAGE_CRC		0xC3
+#define BQ2022_COMMAND_WRITE_MEMORY			0x0F
+#define BQ2022_COMMAND_PRGRAMMING_PROFILE		0x99
+#define BQ2022_COMMAND_WRITE_EPROM_STATUS		0x55
 
-#define CRYPT_COMMON_HEADER	(0xE54C21ED)
+// Program Commands only in write memory or write status mode
+#define BQ2022_PROGRAM_CONTROL				0x5A
 
-#define BQ2022_ID_SAMSUNG_XWD		0x10139461
-#define BQ2022_ID_GUANGYU			0x10139462
-#define BQ2022_ID_SONY_XWD			0x10139463
-#define BQ2022_ID_SAMSUNG_XWD_CD	0x10139464
-#define BQ2022_ID_LG_DESA			0x10139465
-#define BQ2022_ID_SONY_FMT			0x10139466
-#define BQ2022_ID_RUISHENG			0x10139467
-#define BQ2022_ID_DELSA				0x8412E562
-#define BQ2022_ID_AAC				0xAACAACAA
-#define BQ2022_ID_COSLIGHT			0xDF0C7A62
-#define BQ2022_ID_SAMSUNG_FMT		0xF40E9762
+#define BQ2022_ID_SAMSUNG_XWD				0x10139461
+#define BQ2022_ID_GUANGYU				0x10139462
+#define BQ2022_ID_SONY_XWD				0x10139463
+#define BQ2022_ID_SAMSUNG_XWD_COSTDOWN			0x10139464
+#define BQ2022_ID_LG_DESA				0x10139465
+#define BQ2022_ID_SONY_FMT				0x10139466
+#define BQ2022_ID_RUISHENG				0x10139467
+#define BQ2022_ID_DELSA					0x8412E562
+#define BQ2022_ID_AAC					0xAACAACAA
+#define BQ2022_ID_COSLIGHT				0xDF0C7A62
+#define BQ2022_ID_SAMSUNG_FMT				0xF40E9762
 
-#define GEN_PSEUDO_INFO(ptr) (((*((unsigned int *)&ptr[60]))&0xFFFFFF00)|((unsigned int)ptr[8]))
-#define GEN_PSEUDO_HEADER(ptr) (*((unsigned int *)&ptr[0]))
-
-static char batt_crypt_info[128];
-static struct w1_slave *bq2022_slave = NULL;
-
-int w1_bq2022_has_slave(void)
+#define BQ2022_BATTERY_INFO_MAGIC			0xE54C21ED
+typedef struct //1024 bit
 {
-	return bq2022_slave != NULL;
+	unsigned int magic;
+	unsigned int pad1;
+	unsigned int data1 : 8;
+	unsigned int pad2 : 24;
+	unsigned int pad3[12];
+	unsigned int pad4 : 8;
+	unsigned int data2 : 24;
+	unsigned int pad5[16];
+} __attribute__((packed)) bq2022_battery_info;
+
+static unsigned int w1_bq2022_battery_info_id = 0;
+
+int w1_bq2022_has_battery_data(void)
+{
+	return w1_bq2022_battery_info_id != 0;
 }
 
-int w1_bq2022_battery_id(void)
+int w1_bq2022_get_battery_id(void)
 {
-	unsigned int pseduo_info;
 	int ret = 0;
 
-	if (GEN_PSEUDO_HEADER(batt_crypt_info) != CRYPT_COMMON_HEADER)
-	{
-		pr_err("%s: cannot read batt id through one-wire\n", __func__);
-		return ret;
-	}
-	else
-	{
-		pseduo_info = GEN_PSEUDO_INFO(batt_crypt_info);
-		pr_info("%s: pseduo_info:0x%08x\n", __func__, pseduo_info);
-	}
-
-	switch(pseduo_info) {
+	switch(w1_bq2022_battery_info_id) {
 	case BQ2022_ID_LG_DESA:
 	case BQ2022_ID_COSLIGHT:
 		ret = 0x30000; // batt_id_kohm = 12
@@ -90,22 +98,23 @@ int w1_bq2022_battery_id(void)
 		break;
 
 	case BQ2022_ID_RUISHENG:
-		ret = 0x70000; // batt_id_kohm = ??
+		ret = 0x70000; // batt_id_kohm = 33
 		break;
 
-	case BQ2022_ID_SAMSUNG_XWD_CD:
-		ret = 0x80000; // batt_id_kohm = ??
+	case BQ2022_ID_SAMSUNG_XWD_COSTDOWN:
+		ret = 0x80000; // batt_id_kohm = 38
 		break;
 	}
+
 	return ret;
 }
 
-static int w1_bq2022_read(void)
+static int w1_bq2022_add_slave(struct w1_slave *sl)
 {
-	struct w1_slave *sl = bq2022_slave;
 	char cmd[4];
 	u8 crc, calc_crc;
 	int retries = 5;
+	bq2022_battery_info battery_info;
 
 	if (!sl) {
 		pr_err("%s: No w1 device\n", __func__);
@@ -125,8 +134,8 @@ retry:
 	}
 
 	/* rom comm byte + read comm byte + addr 2 bytes */
-	cmd[0] = HDQ_CMD_SKIP_ROM;
-	cmd[1] = HDQ_CMD_READ_FIELD;
+	cmd[0] = BQ2022_COMMAND_SKIP_SERIALIZATION_ROM;
+	cmd[1] = BQ2022_COMMAND_READ_MEMORY_FIELD_CRC;
 	cmd[2] = 0x0;
 	cmd[3] = 0x0;
 
@@ -142,28 +151,29 @@ retry:
 	}
 
 	/* read the whole memory, 1024-bit */
-	w1_read_block(sl->master, batt_crypt_info, 128);
+	w1_read_block(sl->master, (char*) &battery_info, sizeof(battery_info));
 
 	/* crc verified for data */
 	crc = w1_read_8(sl->master);
-	calc_crc = w1_calc_crc8(batt_crypt_info, 128);
+	calc_crc = w1_calc_crc8((char*) &battery_info, sizeof(battery_info));
 	if (calc_crc != crc) {
 		pr_err("%s: w1_bq2022 data crc err\n", __func__);
 		goto retry;
 	}
 
-	return 0;
-}
+	if (battery_info.magic != BQ2022_BATTERY_INFO_MAGIC) {
+		pr_err("%s: invalid battery info magic\n", __func__);
+		return -1;
+	}
 
-static int w1_bq2022_add_slave(struct w1_slave *sl)
-{
-	bq2022_slave = sl;
-	return w1_bq2022_read();
+	w1_bq2022_battery_info_id = battery_info.data1 | battery_info.data2 << 8;
+
+	return 0;
 }
 
 static void w1_bq2022_remove_slave(struct w1_slave *sl)
 {
-	bq2022_slave = NULL;
+	w1_bq2022_battery_info_id = 0;
 }
 
 static struct w1_family_ops w1_bq2022_fops = {

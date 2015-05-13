@@ -1,4 +1,5 @@
 /* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2015 Balázs Triszka <balika011@protonmail.ch>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -3594,8 +3595,8 @@ static int64_t read_battery_id(struct qpnp_bms_chip *chip)
 	struct qpnp_vadc_result result;
 
 #ifdef CONFIG_W1_SLAVE_BQ2022
-	if(w1_bq2022_has_slave())
-		return w1_bq2022_battery_id();
+	if(w1_bq2022_has_battery_data())
+		return w1_bq2022_get_battery_id();
 #endif
 
 	rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX2_BAT_ID, &result);

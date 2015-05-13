@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2015 Balázs Triszka <balika011@protonmail.ch>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -4449,7 +4450,7 @@ qpnp_chg_load_battery_data(struct qpnp_chg_chip *chip)
 	if (node) {
 		memset(&batt_data, 0, sizeof(struct bms_battery_data));
 #ifdef CONFIG_W1_SLAVE_BQ2022
-		if(!w1_bq2022_has_slave())
+		if(!w1_bq2022_has_battery_data())
 		{
 #endif
 			rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX2_BAT_ID, &result);
@@ -4461,7 +4462,7 @@ qpnp_chg_load_battery_data(struct qpnp_chg_chip *chip)
 #ifdef CONFIG_W1_SLAVE_BQ2022
 		}
 		else
-			result.physical = w1_bq2022_battery_id();
+			result.physical = w1_bq2022_get_battery_id();
 #endif
 
 		batt_data.max_voltage_uv = -1;
