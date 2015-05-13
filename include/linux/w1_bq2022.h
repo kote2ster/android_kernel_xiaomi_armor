@@ -1,7 +1,6 @@
 /*
  * include/linux/w1_bq2022.h
  *
- * Copyright (C) 2014 Texas Instruments, Inc.
  * Copyright (C) 2015 Balázs Triszka <balika011@protonmail.ch>
  *
  * This file is licensed under the terms of the GNU General Public License
