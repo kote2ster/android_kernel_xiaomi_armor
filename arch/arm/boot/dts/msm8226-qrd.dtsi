@@ -92,8 +92,6 @@
 			ft5x06_i2c,landing-jiffies = <1000>;
 			ft5x06_i2c,landing-threshold = <16>;
 			ft5x06_i2c,staying-threshold = <8>;
-			ft5x06_i2c,tx-num = <24>;
-			ft5x06_i2c,rx-num = <13>;
 			ft5x06_i2c,raw-min = <7000>;
 			ft5x06_i2c,raw-max = <10000>;
 			ft5x06_i2c,firmware-array-size = <4>;
@@ -107,6 +105,8 @@
 				ft5x06_i2c,key-length = <3>;
 				ft5x06_i2c,key-map = <139 102 158>;
 				ft5x06_i2c,key-pos = <2 6 10>;
+				ft5x06_i2c,tx-num = <24>;
+				ft5x06_i2c,rx-num = <13>;
 			};
 			ft5x06_i2c,cfg_1 {
 				ft5x06_i2c,chip = <0x14>;
@@ -118,6 +118,8 @@
 				ft5x06_i2c,key-length = <3>;
 				ft5x06_i2c,key-map = <139 102 158>;
 				ft5x06_i2c,key-pos = <2 6 10>;
+				ft5x06_i2c,tx-num = <24>;
+				ft5x06_i2c,rx-num = <13>;
 			};
 			ft5x06_i2c,cfg_2 {
 				ft5x06_i2c,chip = <0x14>;
@@ -129,6 +131,8 @@
 				ft5x06_i2c,key-length = <3>;
 				ft5x06_i2c,key-map = <139 102 158>;
 				ft5x06_i2c,key-pos = <2 6 10>;
+				ft5x06_i2c,tx-num = <24>;
+				ft5x06_i2c,rx-num = <13>;
 			};
 			ft5x06_i2c,cfg_3 {
 				ft5x06_i2c,chip = <0x14>;
@@ -140,6 +144,8 @@
 				ft5x06_i2c,key-length = <3>;
 				ft5x06_i2c,key-map = <139 102 158>;
 				ft5x06_i2c,key-pos = <2 6 10>;
+				ft5x06_i2c,tx-num = <24>;
+				ft5x06_i2c,rx-num = <13>;
 			};
 		};
 	};

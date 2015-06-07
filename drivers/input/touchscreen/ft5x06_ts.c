@@ -151,7 +151,6 @@ struct ft5x06_finger {
 	int size;
 	int pressure;
 	bool detect;
-	cputime64_t time;
 };
 
 struct ft5x06_tracker {
@@ -183,9 +182,6 @@ struct ft5x06_data {
 	u8 chip_id;
 	u8 is_usb_plug_in;
 	int current_index;
-
-	struct input_dev * power_input;
-	struct ft5x06_finger power_finger;	
 };
 
 static int ft5x06_recv_byte(struct ft5x06_data *ft5x06, u8 len, ...)
@@ -779,13 +775,12 @@ static int ft5x06_collect_finger(struct ft5x06_data *ft5x06,
 		finger[id].size = buf[i].size;
 		finger[id].pressure = buf[i].pressure;
 		finger[id].detect = !buf[i].event_up;
-		finger[id].time = ktime_to_ms(ktime_get());
 
 		if (ft5x06->dbgdump)
 			dev_info(ft5x06->dev,
-				"fig(%02u): D: %d X: %04d Y: %04d P: %03d S: %03d %08lld\n", id,
+				"fig(%02u): D: %d X: %04d Y: %04d P: %03d S: %03d\n", id,
 				finger[id].detect, finger[id].x, finger[id].y,
-				finger[id].pressure, finger[id].size, finger[id].time);
+				finger[id].pressure, finger[id].size);
 	}
 
 	return 0;
@@ -864,70 +859,27 @@ static void ft5x06_report_touchevent(struct ft5x06_data *ft5x06,
 			continue;
 		}
 
-		if (ft5x06->in_suspend) {
-			if (ft5x06->dbgdump)
-				dev_info(ft5x06->dev,
-					"sustch(%02d): X: %04d Y: %04d P: %03d S: %03d T: %08lld\n",
-					i, finger[i].x, finger[i].y,
-					finger[i].pressure, finger[i].size,
-					finger[i].time);
-
-			if (finger[i].time - ft5x06->power_finger.time > 200)
-			{
-				if (ft5x06->dbgdump && ft5x06->power_finger.time != 0)
-					dev_info(ft5x06->dev, "diff: %04d %04d %08lld\n",
-							(finger[i].x > ft5x06->power_finger.x ?
-								(finger[i].x - ft5x06->power_finger.x) :
-								(ft5x06->power_finger.x - finger[i].x)),
-							(finger[i].y > ft5x06->power_finger.y ?
-								(finger[i].y - ft5x06->power_finger.y) :
-								(ft5x06->power_finger.y - finger[i].y)),
-							finger[i].time - ft5x06->power_finger.time);
-
-				if(
-					finger[i].time - ft5x06->power_finger.time < 500 &&
-					(finger[i].x > ft5x06->power_finger.x ?
-						(finger[i].x - ft5x06->power_finger.x) :
-						(ft5x06->power_finger.x - finger[i].x)) < 50 &&
-					(finger[i].y > ft5x06->power_finger.y ?
-						(finger[i].y - ft5x06->power_finger.y) :
-						(ft5x06->power_finger.y - finger[i].y)) < 50
-				)
-				{
-					input_report_key(ft5x06->power_input, KEY_POWER, 1);
-					input_report_key(ft5x06->power_input, KEY_POWER, 0);
-					input_sync(ft5x06->power_input);
-
-					if (ft5x06->dbgdump)
-						dev_info(ft5x06->dev, "power key sent");
-
-					memset(&ft5x06->power_finger, 0, sizeof(ft5x06->power_finger));
-				} else
-					ft5x06->power_finger = finger[i];
-			}
-		} else {
 #ifdef CONFIG_TOUCHSCREEN_FT5X06_TYPEB
-			input_mt_report_slot_state(ft5x06->input, MT_TOOL_FINGER, 1);
+		input_mt_report_slot_state(ft5x06->input, MT_TOOL_FINGER, 1);
 #endif
-			input_report_abs(ft5x06->input, ABS_MT_TRACKING_ID, i);
-			input_report_abs(ft5x06->input, ABS_MT_POSITION_X ,
-				max(1, finger[i].x)); /* for fruit ninja */
-			input_report_abs(ft5x06->input, ABS_MT_POSITION_Y ,
-				max(1, finger[i].y)); /* for fruit ninja */
-			input_report_abs(ft5x06->input, ABS_MT_TOUCH_MAJOR,
-				max(1, finger[i].pressure));
-			input_report_abs(ft5x06->input, ABS_MT_WIDTH_MAJOR,
-				max(1, finger[i].size));
+		input_report_abs(ft5x06->input, ABS_MT_TRACKING_ID, i);
+		input_report_abs(ft5x06->input, ABS_MT_POSITION_X ,
+			max(1, finger[i].x)); /* for fruit ninja */
+		input_report_abs(ft5x06->input, ABS_MT_POSITION_Y ,
+			max(1, finger[i].y)); /* for fruit ninja */
+		input_report_abs(ft5x06->input, ABS_MT_TOUCH_MAJOR,
+			max(1, finger[i].pressure));
+		input_report_abs(ft5x06->input, ABS_MT_WIDTH_MAJOR,
+			max(1, finger[i].size));
 #ifndef CONFIG_TOUCHSCREEN_FT5X06_TYPEB
-			input_mt_sync(ft5x06->input);
-			mt_sync_sent = true;
+		input_mt_sync(ft5x06->input);
+		mt_sync_sent = true;
 #endif
-			if (ft5x06->dbgdump)
-				dev_info(ft5x06->dev,
-					"tch(%02d): %04d %04d %03d %03d\n",
-					i, finger[i].x, finger[i].y,
-					finger[i].pressure, finger[i].size);
-		}
+		if (ft5x06->dbgdump)
+			dev_info(ft5x06->dev,
+				"tch(%02d): %04d %04d %03d %03d\n",
+				i, finger[i].x, finger[i].y,
+				finger[i].pressure, finger[i].size);
 	}
 #ifndef CONFIG_TOUCHSCREEN_FT5X06_TYPEB
 	if (!mt_sync_sent) {
@@ -962,14 +914,14 @@ int ft5x06_suspend(struct ft5x06_data *ft5x06)
 {
 	int error = 0;
 
-	enable_irq_wake(ft5x06->irq);
+	disable_irq(ft5x06->irq);
 	mutex_lock(&ft5x06->mutex);
 	memset(ft5x06->tracker, 0, sizeof(ft5x06->tracker));
 
 	ft5x06->in_suspend = true;
 	cancel_delayed_work_sync(&ft5x06->noise_filter_delayed_work);
 	error = ft5x06_write_byte(ft5x06,
-			FT5X0X_ID_G_PMODE, FT5X0X_POWER_ACTIVE);
+			FT5X0X_ID_G_PMODE, FT5X0X_POWER_HIBERNATE);
 
 	mutex_unlock(&ft5x06->mutex);
 
@@ -993,7 +945,7 @@ int ft5x06_resume(struct ft5x06_data *ft5x06)
 				NOISE_FILTER_DELAY);
 	ft5x06->in_suspend = false;
 	mutex_unlock(&ft5x06->mutex);
-	disable_irq_wake(ft5x06->irq);
+	enable_irq(ft5x06->irq);
 
 	return 0;
 }
@@ -1804,12 +1756,12 @@ static int ft5x06_parse_dt(struct device *dev,
 		rc = of_property_read_u32(sub_np, "ft5x06_i2c,tx-num", &pdata->testdata[j].tx_num);
 		if (rc) {
 			dev_err(dev, "can't read tx-num\n");
-			pdata->testdata[j].tx_num = 28;
+			return rc;
 		}
 		rc = of_property_read_u32(sub_np, "ft5x06_i2c,rx-num", &pdata->testdata[j].rx_num);
 		if (rc) {
 			dev_err(dev, "can't read rx-num\n");
-			pdata->testdata[j].rx_num = 16;
+			return rc;
 		}
 
 		j ++;
@@ -1955,26 +1907,6 @@ struct ft5x06_data *ft5x06_probe(struct device *dev,
 	set_bit(EV_KEY, ft5x06->input->evbit);
 	set_bit(EV_ABS, ft5x06->input->evbit);
 
-	// POWER
-	memset(&ft5x06->power_finger, 0, sizeof(ft5x06->power_finger));
-	ft5x06->power_input = input_allocate_device();
-	if (!ft5x06->power_input)
-	{
-		dev_err(dev, "failed to allocate power key\n");
-		goto err_free_input;
-	}
-
-	input_set_capability(ft5x06->power_input, EV_KEY, KEY_POWER);
-	ft5x06->power_input->name = "ft5x06_power";
-	ft5x06->power_input->phys = "ft5x06_power/input0";
-
-	error = input_register_device(ft5x06->power_input);
-	if (error) {
-		dev_err(dev, "failed to register power key device\n");
-		goto err_free_input;
-	}
-	// POWER
-
 	error = ft5x06_read_byte(ft5x06, FT5X0X_REG_CHIP_ID, &ft5x06->chip_id);
 	if (error) {
 		dev_err(dev, "failed to read chip id\n");
@@ -2008,7 +1940,7 @@ struct ft5x06_data *ft5x06_probe(struct device *dev,
 
 	/* start interrupt process */
 	error = request_threaded_irq(ft5x06->irq, NULL, ft5x06_interrupt,
-				IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND, "ft5x06", ft5x06);
+				IRQF_TRIGGER_FALLING, "ft5x06", ft5x06);
 	if (error) {
 		dev_err(dev, "fail to request interrupt\n");
 		goto err_free_phys;
