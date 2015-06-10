@@ -62,20 +62,20 @@
 #define FT_TOUCH_CONTACT	2
 
 /*register address*/
-#define FT_REG_DEV_MODE		0x00
-#define FT_DEV_MODE_REG_CAL	0x02
-#define FT_REG_ID		0xA3
-#define FT_REG_PMODE		0xA5
-#define FT_REG_FW_VER		0xA6
-#define FT_REG_POINT_RATE	0x88
-#define FT_REG_THGROUP		0x80
-#define FT_REG_ECC		0xCC
-#define FT_REG_RESET_FW		0x07
-#define FT_REG_FW_MIN_VER	0xB2
+#define FT_REG_DEV_MODE			0x00 //DEVIDE_MODE
+#define FT_DEV_MODE_REG_CAL		0x02
+#define FT_REG_RESET_FW			0x07
+#define FT_REG_POINT_RATE		0x88
+#define FT_REG_THGROUP			0x80
+#define FT_REG_ID				0xA3 //ID_G_CIPHER - Chip vendor ID
+#define FT_REG_PMODE			0xA5 //ID_G_PMODE - Power Consume Mode
+#define FT_REG_FW_VER			0xA6 //ID_G_FIRMID - Firmware ID
+#define FT_REG_FW_MIN_VER		0xB2
 #define FT_REG_FW_SUB_MIN_VER	0xB3
-#define FT_REG_GESTURES_0	0xD0
-#define FT_REG_GESTURES_1	0xD1
-#define FT_REG_GESTURES_2	0xD2
+#define FT_REG_ECC				0xCC
+#define FT_REG_GESTURES_0		0xD0
+#define FT_REG_GESTURES_1		0xD1
+#define FT_REG_GESTURES_2		0xD2
 #define FT_REG_GESTURES_OUTPUT	0xD3
 
 /* power register bits*/
@@ -352,7 +352,7 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 			rc = ft5x06_i2c_read(data->client, &gesturebuf, 1, &gesturebuf, 1);
 			if (rc < 0)
 			{
-				printk("%s read touchdata failed.\n", __func__);
+				dev_err(&data->client->dev, "%s: read touchdata failed.\n", __func__);
 				return IRQ_HANDLED;
 			}
 
@@ -393,8 +393,8 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 			(buf[FT_TOUCH_Y_L_POS + FT_ONE_TCH_LEN * i]);
 
 		// DEBUG
-		/*dev_err(&data->client->dev, "%s: x: %d\n", __func__, x);
-		dev_err(&data->client->dev, "%s: y: %d\n", __func__, y);*/
+		dev_err(&data->client->dev, "%s: x: %d\n", __func__, x);
+		dev_err(&data->client->dev, "%s: y: %d\n", __func__, y);
 		// DEBUG
 
 		// Firmware reports 640x1145, whit x shifted by +80, fix that here for 720x1280
@@ -405,11 +405,17 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 		if(y <= 1145)
 			y = y * 1280 / 1145;
 		else
-			y = 1344; //TODO: Report a value based on y
+		{
+			y -= 1146;
+
+			y = y * 64 / 54; // 1345 - 1281 = 64; 1200 - 1146 = 54
+
+			y += 1281;
+		}
 
 		// DEBUG
-		/*dev_err(&data->client->dev, "%s: newx: %d\n", __func__, x);
-		dev_err(&data->client->dev, "%s: newy: %d\n", __func__, y);*/
+		dev_err(&data->client->dev, "%s: newx: %d\n", __func__, x);
+		dev_err(&data->client->dev, "%s: newy: %d\n", __func__, y);
 		// DEBUG
 
 		status = buf[FT_TOUCH_EVENT_POS + FT_ONE_TCH_LEN * i] >> 6;
