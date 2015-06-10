@@ -143,7 +143,8 @@ fw-shipped-$(CONFIG_YAM) += yam/1200.bin yam/9600.bin
 fw-shipped-$(CONFIG_TOUCHSCREEN_FT5X06) += ft5316_firmware.fw \
 					   ft5336_firmware_ofilm.fw \
 					   ft5336_firmware_wintek.fw \
-					   ft5336_firmware_biel.fw
+					   ft5336_firmware_biel.fw \
+					   ft5336_firmware_dt2w.fw
 fw-shipped-$(CONFIG_TOUCHSCREEN_IST30XX) += ist30xx_firmware.fw
 
 fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)
