@@ -43,152 +43,150 @@
 #define FT_SUSPEND_LEVEL 1
 #endif
 
-#define FT_DRIVER_VERSION	0x02
+#define FT_DRIVER_VERSION		0x02
 
-#define FT_META_REGS		3
-#define FT_ONE_TCH_LEN		6
-#define FT_TCH_LEN(x)		(FT_META_REGS + FT_ONE_TCH_LEN * x)
-
-#define FT_PRESS		0x7F
-#define FT_MAX_ID		0x0F
-#define FT_TOUCH_X_H_POS	3
-#define FT_TOUCH_X_L_POS	4
-#define FT_TOUCH_Y_H_POS	5
-#define FT_TOUCH_Y_L_POS	6
-#define FT_TD_STATUS		2
-#define FT_TOUCH_EVENT_POS	3
-#define FT_TOUCH_ID_POS		5
-#define FT_TOUCH_DOWN		0
-#define FT_TOUCH_CONTACT	2
+#define FT_MAX_ID			0x0F
 
 /*register address*/
 #define FT_REG_DEV_MODE			0x00 //DEVIDE_MODE
 #define FT_DEV_MODE_REG_CAL		0x02
+#define FT_REG_TOUCH_START		0x03
 #define FT_REG_RESET_FW			0x07
 #define FT_REG_POINT_RATE		0x88
 #define FT_REG_THGROUP			0x80
-#define FT_REG_ID				0xA3 //ID_G_CIPHER - Chip vendor ID
+#define FT_REG_ID			0xA3 //ID_G_CIPHER - Chip vendor ID
 #define FT_REG_PMODE			0xA5 //ID_G_PMODE - Power Consume Mode
 #define FT_REG_FW_VER			0xA6 //ID_G_FIRMID - Firmware ID
-#define FT_REG_FW_MIN_VER		0xB2
-#define FT_REG_FW_SUB_MIN_VER	0xB3
-#define FT_REG_ECC				0xCC
+#define FT_REG_FW_VENDOR_ID		0xA8 //ID_G_VENDOR - Vendor ID
+#define FT_REG_ECC			0xCC
 #define FT_REG_GESTURES_0		0xD0
 #define FT_REG_GESTURES_1		0xD1
 #define FT_REG_GESTURES_2		0xD2
-#define FT_REG_GESTURES_OUTPUT	0xD3
+#define FT_REG_GESTURES_OUTPUT		0xD3
 
 /* power register bits*/
-#define FT_PMODE_ACTIVE		0x00
-#define FT_PMODE_MONITOR	0x01
-#define FT_PMODE_STANDBY	0x02
-#define FT_PMODE_HIBERNATE	0x03
-#define FT_FACTORYMODE_VALUE	0x40
-#define FT_WORKMODE_VALUE	0x00
-#define FT_RST_CMD_REG1		0xFC
-#define FT_RST_CMD_REG2		0xBC
-#define FT_READ_ID_REG		0x90
-#define FT_ERASE_APP_REG	0x61
-#define FT_ERASE_PANEL_REG	0x63
-#define FT_FW_START_REG		0xBF
+#define FT_PMODE_ACTIVE			0x00
+#define FT_PMODE_MONITOR		0x01
+#define FT_PMODE_STANDBY		0x02
+#define FT_PMODE_HIBERNATE		0x03
+#define FT_FACTORYMODE_VALUE		0x40
+#define FT_WORKMODE_VALUE		0x00
+#define FT_RST_CMD_REG1			0xFC
+#define FT_RST_CMD_REG2			0xBC
+#define FT_READ_ID_REG			0x90
+#define FT_ERASE_APP_REG		0x61
+#define FT_ERASE_PANEL_REG		0x63
+#define FT_FW_START_REG			0xBF
 
-#define FT_STATUS_NUM_TP_MASK	0x0F
+#define FT_VTG_MIN_UV			2600000
+#define FT_VTG_MAX_UV			3300000
+#define FT_I2C_VTG_MIN_UV		1800000
+#define FT_I2C_VTG_MAX_UV		1800000
 
-#define FT_VTG_MIN_UV		2600000
-#define FT_VTG_MAX_UV		3300000
-#define FT_I2C_VTG_MIN_UV	1800000
-#define FT_I2C_VTG_MAX_UV	1800000
+#define FT_COORDS_ARR_SIZE		4
+#define MAX_BUTTONS			4
 
-#define FT_COORDS_ARR_SIZE	4
-#define MAX_BUTTONS		4
+#define FT_8BIT_SHIFT			8
+#define FT_4BIT_SHIFT			4
+#define FT_FW_NAME_MAX_LEN		50
 
-#define FT_8BIT_SHIFT		8
-#define FT_4BIT_SHIFT		4
-#define FT_FW_NAME_MAX_LEN	50
+#define FT6X06_ID			0x06
+#define FT5X16_ID			0x0A
+#define FT5X36_ID			0x14
+#define FT5X06_ID			0x55
 
-#define FT5316_ID		0x0A
-#define FT5306I_ID		0x55
-#define FT6X06_ID		0x06
+#define FT_UPGRADE_AA			0xAA
+#define FT_UPGRADE_55			0x55
 
-#define FT_UPGRADE_AA		0xAA
-#define FT_UPGRADE_55		0x55
-
-#define FT_FW_MIN_SIZE		8
-#define FT_FW_MAX_SIZE		32768
+#define FT_FW_MIN_SIZE			8
+#define FT_FW_MAX_SIZE			32768
 
 /* Firmware file is not supporting minor and sub minor so use 0 */
 #define FT_FW_FILE_MAJ_VER(x)	((x)->data[(x)->size - 2])
-#define FT_FW_FILE_MIN_VER(x)	0
-#define FT_FW_FILE_SUB_MIN_VER(x) 0
+#define FT_FW_FILE_VENDOR_ID(x)	((x)->data[(x)->size - 1])
 
-#define FT_FW_CHECK(x)		\
+#define FT_FW_CHECK(x) \
 	(((x)->data[(x)->size - 8] ^ (x)->data[(x)->size - 6]) == 0xFF \
 	&& (((x)->data[(x)->size - 7] ^ (x)->data[(x)->size - 5]) == 0xFF \
 	&& (((x)->data[(x)->size - 3] ^ (x)->data[(x)->size - 4]) == 0xFF)))
 
-#define FT_MAX_TRIES		5
-#define FT_RETRY_DLY		20
+#define FT_MAX_TRIES			5
+#define FT_RETRY_DLY			20
 
-#define FT_MAX_WR_BUF		10
-#define FT_MAX_RD_BUF		2
-#define FT_FW_PKT_LEN		128
-#define FT_FW_PKT_META_LEN	6
-#define FT_FW_PKT_DLY_MS	20
-#define FT_FW_LAST_PKT		0x6ffa
-#define FT_EARSE_DLY_MS		100
-#define FT_55_AA_DLY_NS		5000
+#define FT_MAX_WR_BUF			10
+#define FT_MAX_RD_BUF			2
+#define FT_FW_PKT_LEN			128
+#define FT_FW_PKT_META_LEN		6
+#define FT_FW_PKT_DLY_MS		20
+#define FT_FW_LAST_PKT			0x6ffa
+#define FT_EARSE_DLY_MS			100
+#define FT_55_AA_DLY_NS			5000
 
-#define FT_UPGRADE_LOOP		30
-#define FT_CAL_START		0x04
-#define FT_CAL_FIN		0x00
-#define FT_CAL_STORE		0x05
-#define FT_CAL_RETRY		100
-#define FT_REG_CAL		0x00
-#define FT_CAL_MASK		0x70
+#define FT_UPGRADE_LOOP			30
+#define FT_CAL_START			0x04
+#define FT_CAL_FIN			0x00
+#define FT_CAL_STORE			0x05
+#define FT_CAL_RETRY			100
+#define FT_REG_CAL			0x00
+#define FT_CAL_MASK			0x70
 
-#define FT_INFO_MAX_LEN		512
+#define FT_INFO_MAX_LEN			512
 
-#define FT_BLOADER_SIZE_OFF	12
-#define FT_BLOADER_NEW_SIZE	30
-#define FT_DATA_LEN_OFF_OLD_FW	8
-#define FT_DATA_LEN_OFF_NEW_FW	14
+#define FT_BLOADER_SIZE_OFF		12
+#define FT_BLOADER_NEW_SIZE		30
+#define FT_DATA_LEN_OFF_OLD_FW		8
+#define FT_DATA_LEN_OFF_NEW_FW		14
 #define FT_FINISHING_PKT_LEN_OLD_FW	6
 #define FT_FINISHING_PKT_LEN_NEW_FW	12
-#define FT_MAGIC_BLOADER_Z7	0x7bfa
-#define FT_MAGIC_BLOADER_LZ4	0x6ffa
-#define FT_MAGIC_BLOADER_GZF_30	0x7ff4
-#define FT_MAGIC_BLOADER_GZF	0x7bf4
+#define FT_MAGIC_BLOADER_Z7		0x7bfa
+#define FT_MAGIC_BLOADER_LZ4		0x6ffa
+#define FT_MAGIC_BLOADER_GZF_30		0x7ff4
+#define FT_MAGIC_BLOADER_GZF		0x7bf4
 
-enum {
-	FT_BLOADER_VERSION_LZ4 = 0,
-	FT_BLOADER_VERSION_Z7 = 1,
-	FT_BLOADER_VERSION_GZF = 2,
-};
+#define FT_BLOADER_VERSION_LZ4		0
+#define FT_BLOADER_VERSION_Z7		1
+#define FT_BLOADER_VERSION_GZF		2
 
-enum {
-	FT_FT5336_FAMILY_ID_0x11 = 0x11,
-	FT_FT5336_FAMILY_ID_0x12 = 0x12,
-	FT_FT5336_FAMILY_ID_0x13 = 0x13,
-	FT_FT5336_FAMILY_ID_0x14 = 0x14,
-};
+#define FT_FT5336_FAMILY_ID_0x11	0x11
+#define FT_FT5336_FAMILY_ID_0x12	0x12
+#define FT_FT5336_FAMILY_ID_0x13	0x13
+#define FT_FT5336_FAMILY_ID_0x14	0x14
 
 #define FT_GESTURE_DOUBLECLICK		0x24
 
-#define FT_STORE_TS_INFO(buf, id, name, max_tch, \
-			fw_name, fw_maj, fw_min, fw_sub_min) \
-			snprintf(buf, FT_INFO_MAX_LEN, \
-				"controller\t= focaltech\n" \
-				"model\t\t= 0x%x\n" \
-				"name\t\t= %s\n" \
-				"max_touches\t= %d\n" \
-				"drv_ver\t\t= 0x%x\n" \
-				"fw_name\t\t= %s\n" \
-				"fw_ver\t\t= %d.%d.%d\n", id, name, \
-				max_tch, FT_DRIVER_VERSION, \
-				fw_name, fw_maj, fw_min, \
-				fw_sub_min)
+#define FT_STORE_TS_INFO(buf, id, name, max_tch, fw_name, fw_ver) \
+	snprintf(buf, FT_INFO_MAX_LEN, \
+		"controller\t= focaltech\n" \
+		"model\t\t= 0x%x\n" \
+		"name\t\t= %s\n" \
+		"max_touches\t= %d\n" \
+		"drv_ver\t\t= 0x%x\n" \
+		"fw_name\t\t= %s\n" \
+		"fw_ver\t\t= %d\n", \
+		id, \
+		name, \
+		max_tch, \
+		FT_DRIVER_VERSION, \
+		fw_name, \
+		fw_ver \
+	)
 
-#define FT_DEBUG_DIR_NAME	"ts_debug"
+#define FT_DEBUG_DIR_NAME		"ts_debug"
+
+struct ft5x06_touch_data {
+	u8 xhi : 4;
+	u8 pad : 2;
+	u8 event_up : 1;
+	u8 event_contact: 1;
+	u8 x;
+
+	u8 yhi : 4;
+	u8 id : 4;
+	u8 y;
+
+	u8 pressure;
+	u8 size;
+} __attribute__ ((packed));
 
 struct ft5x06_ts_data {
 	struct i2c_client *client;
@@ -203,9 +201,8 @@ struct ft5x06_ts_data {
 	u16 addr;
 	bool suspended;
 	char *ts_info;
-	u8 *tch_data;
-	u32 tch_data_len;
-	u8 fw_ver[3];
+	u8 fw_ver;
+	u8 fw_vendor_id;
 #if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
@@ -297,22 +294,25 @@ static void ft5x06_update_fw_ver(struct ft5x06_ts_data *data)
 	int err;
 
 	reg_addr = FT_REG_FW_VER;
-	err = ft5x06_i2c_read(client, &reg_addr, 1, &data->fw_ver[0], 1);
+	err = ft5x06_i2c_read(client, &reg_addr, 1, &data->fw_ver, 1);
 	if (err < 0)
 		dev_err(&client->dev, "fw major version read failed");
 
-	reg_addr = FT_REG_FW_MIN_VER;
-	err = ft5x06_i2c_read(client, &reg_addr, 1, &data->fw_ver[1], 1);
-	if (err < 0)
-		dev_err(&client->dev, "fw minor version read failed");
+	dev_info(&client->dev, "Firmware version = %d\n", data->fw_ver);
+}
 
-	reg_addr = FT_REG_FW_SUB_MIN_VER;
-	err = ft5x06_i2c_read(client, &reg_addr, 1, &data->fw_ver[2], 1);
-	if (err < 0)
-		dev_err(&client->dev, "fw sub minor version read failed");
+static void ft5x06_update_fw_vendor_id(struct ft5x06_ts_data *data)
+{
+	struct i2c_client *client = data->client;
+	u8 reg_addr;
+	int err;
 
-	dev_info(&client->dev, "Firmware version = %d.%d.%d\n",
-		data->fw_ver[0], data->fw_ver[1], data->fw_ver[2]);
+	reg_addr = FT_REG_FW_VENDOR_ID;
+	err = ft5x06_i2c_read(client, &reg_addr, 1, &data->fw_vendor_id, 1);
+	if (err < 0)
+		dev_err(&client->dev, "fw vendor id read failed");
+
+	dev_info(&client->dev, "Firmware vendor = %d\n", data->fw_vendor_id);
 }
 
 static void ft5x06_gestures_unblock(unsigned long lparam)
@@ -327,10 +327,11 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 	struct ft5x06_ts_data *data = dev_id;
 	struct input_dev *ip_dev;
 	int rc, i;
-	u32 id, x, y, status, num_touches;
-	u8 reg = 0x00, *buf, gesturebuf;
+	u32 id, x, y;
+	u8 reg, gesturebuf;
 	bool update_input = false;
 	struct timer_list ft5x06_gestures_block_timer;
+	struct ft5x06_touch_data buf[FT_MAX_ID];
 
 	if (!data) {
 		pr_err("%s: Invalid data\n", __func__);
@@ -338,7 +339,6 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 	}
 
 	ip_dev = data->input_dev;
-	buf = data->tch_data;
 
 	if(data->gestures_enabled)
 	{
@@ -374,27 +374,26 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 		}
 	}
 
-	rc = ft5x06_i2c_read(data->client, &reg, 1, buf, data->tch_data_len);
+	reg = FT_REG_TOUCH_START;
+	rc = ft5x06_i2c_read(data->client, &reg, 1, (u8 *) buf, sizeof(struct ft5x06_touch_data) * data->pdata->num_max_touches);
 	if (rc < 0) {
 		dev_err(&data->client->dev, "%s: read data fail\n", __func__);
 		return IRQ_HANDLED;
 	}
 
 	for (i = 0; i < data->pdata->num_max_touches; i++) {
-		id = (buf[FT_TOUCH_ID_POS + FT_ONE_TCH_LEN * i]) >> 4;
+		id = buf[i].id;
 		if (id >= FT_MAX_ID)
 			break;
 
 		update_input = true;
 
-		x = (buf[FT_TOUCH_X_H_POS + FT_ONE_TCH_LEN * i] & 0x0F) << 8 |
-			(buf[FT_TOUCH_X_L_POS + FT_ONE_TCH_LEN * i]);
-		y = (buf[FT_TOUCH_Y_H_POS + FT_ONE_TCH_LEN * i] & 0x0F) << 8 |
-			(buf[FT_TOUCH_Y_L_POS + FT_ONE_TCH_LEN * i]);
+		x = (buf[i].xhi << 8) | buf[i].x;
+		y = (buf[i].yhi << 8) | buf[i].y;
 
 		// DEBUG
-		dev_err(&data->client->dev, "%s: x: %d\n", __func__, x);
-		dev_err(&data->client->dev, "%s: y: %d\n", __func__, y);
+		/*dev_err(&data->client->dev, "%s: x: %d\n", __func__, x);
+		dev_err(&data->client->dev, "%s: y: %d\n", __func__, y);*/
 		// DEBUG
 
 		// Firmware reports 640x1145, whit x shifted by +80, fix that here for 720x1280
@@ -414,26 +413,17 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 		}
 
 		// DEBUG
-		dev_err(&data->client->dev, "%s: newx: %d\n", __func__, x);
-		dev_err(&data->client->dev, "%s: newy: %d\n", __func__, y);
+		/*dev_err(&data->client->dev, "%s: newx: %d\n", __func__, x);
+		dev_err(&data->client->dev, "%s: newy: %d\n", __func__, y);*/
 		// DEBUG
 
-		status = buf[FT_TOUCH_EVENT_POS + FT_ONE_TCH_LEN * i] >> 6;
-
-		num_touches = buf[FT_TD_STATUS] & FT_STATUS_NUM_TP_MASK;
-
-		/* invalid combination */
-		if (!num_touches && !status && !id)
-			break;
-
 		input_mt_slot(ip_dev, id);
-		if (status == FT_TOUCH_DOWN || status == FT_TOUCH_CONTACT) {
+		if (!buf[i].event_up || buf[i].event_contact) {
 			input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 1);
 			input_report_abs(ip_dev, ABS_MT_POSITION_X, x);
 			input_report_abs(ip_dev, ABS_MT_POSITION_Y, y);
-		} else {
+		} else
 			input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 0);
-		}
 	}
 
 	if (update_input) {
@@ -479,7 +469,11 @@ power_off:
 	if (rc) {
 		dev_err(&data->client->dev,
 			"Regulator vcc_i2c disable failed rc=%d\n", rc);
-		regulator_enable(data->vdd);
+		rc = regulator_enable(data->vdd);
+		if (rc) {
+			dev_err(&data->client->dev,
+				"Regulator vdd enable failed rc=%d\n", rc);
+		}
 	}
 
 	return rc;
@@ -985,7 +979,7 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 	struct ft5x06_ts_data *data = dev_get_drvdata(dev);
 	const struct firmware *fw = NULL;
 	int rc;
-	u8 fw_file_maj, fw_file_min, fw_file_sub_min;
+	u8 fw_file_maj, fw_file_vendor_id;
 	bool fw_upgrade = false;
 
 	if (data->suspended) {
@@ -1006,18 +1000,33 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 		goto rel_fw;
 	}
 
-	fw_file_maj = FT_FW_FILE_MAJ_VER(fw);
-	fw_file_min = FT_FW_FILE_MIN_VER(fw);
-	fw_file_sub_min = FT_FW_FILE_SUB_MIN_VER(fw);
+	// TEST CODE
+	// This code used to change vendor of dt2w fw realtime.
+	// This way easier to test then hexedit the fw.
+	// Needed to fix hw dt2w on every vendor's chip.
+	if(fw->data[fw->size - 2] == fw->data[0x0000505A] && fw->data[fw->size] == fw->data[0x00005A60])
+	{
+		// HACK: Bypass read-only whit a cast.
+		((u8 *)fw->data)[fw->size - 2] = 0; //fooder version
+		((u8 *)fw->data)[0x0000505A] = 0; //fw version
 
-	dev_info(dev, "Current firmware: %d.%d.%d", data->fw_ver[0],
-				data->fw_ver[1], data->fw_ver[2]);
-	dev_info(dev, "New firmware: %d.%d.%d", fw_file_maj,
-				fw_file_min, fw_file_sub_min);
+		// 0x51 - OFilm, 0x89 - Wintek, 0x3B - Biel
+		((u8 *)fw->data)[fw->size] = 0x89; //fooder vendor
+		((u8 *)fw->data)[0x00005A60] = 0x89; //fw vendor
+	}
+	// TEST CODE
+
+	fw_file_maj = FT_FW_FILE_MAJ_VER(fw);
+	fw_file_vendor_id = FT_FW_FILE_VENDOR_ID(fw);
+
+	dev_info(dev, "Current firmware vendor: %X\n", data->fw_vendor_id);
+	dev_info(dev, "Current firmware version: %d\n", data->fw_ver);
+	dev_info(dev, "New firmware vendor: %X\n", fw_file_vendor_id);
+	dev_info(dev, "New firmware version: %d\n", fw_file_maj);
 
 	if (force)
 		fw_upgrade = true;
-	else if (data->fw_ver[0] < fw_file_maj)
+	else if (data->fw_ver < fw_file_maj && data->fw_vendor_id == fw_file_vendor_id)
 		fw_upgrade = true;
 
 	if (!fw_upgrade) {
@@ -1039,11 +1048,11 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 	}
 
 	ft5x06_update_fw_ver(data);
+	ft5x06_update_fw_vendor_id(data);
 
 	FT_STORE_TS_INFO(data->ts_info, data->family_id, data->pdata->name,
 			data->pdata->num_max_touches,
-			data->pdata->fw_name, data->fw_ver[0],
-			data->fw_ver[1], data->fw_ver[2]);
+			data->pdata->fw_name, data->fw_ver);
 rel_fw:
 	release_firmware(fw);
 	return rc;
@@ -1403,7 +1412,7 @@ static int ft5x06_parse_dt(struct device *dev,
 
 	rc = of_property_read_u32(np, "focaltech,num-max-touches", &temp_val);
 	if (!rc)
-		pdata->num_max_touches = temp_val;
+		pdata->num_max_touches = temp_val > FT_MAX_ID ? FT_MAX_ID : temp_val;
 	else
 		return rc;
 
@@ -1598,14 +1607,6 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 		}
 
 		strlcpy(data->fw_name, pdata->fw_name, len + 1);
-	}
-
-	data->tch_data_len = FT_TCH_LEN(pdata->num_max_touches);
-	data->tch_data = devm_kzalloc(&client->dev,
-				data->tch_data_len, GFP_KERNEL);
-	if (!data) {
-		dev_err(&client->dev, "Not enough memory\n");
-		return -ENOMEM;
 	}
 
 	input_dev = input_allocate_device();
@@ -1821,11 +1822,11 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	dev_dbg(&client->dev, "touch threshold = %d\n", reg_value * 4);
 
 	ft5x06_update_fw_ver(data);
+	ft5x06_update_fw_vendor_id(data);
 
 	FT_STORE_TS_INFO(data->ts_info, data->family_id, data->pdata->name,
 			data->pdata->num_max_touches,
-			data->pdata->fw_name, data->fw_ver[0],
-			data->fw_ver[1], data->fw_ver[2]);
+			data->pdata->fw_name, data->fw_ver);
 
 #if defined(CONFIG_FB)
 	data->fb_notif.notifier_call = fb_notifier_callback;
@@ -1912,7 +1913,7 @@ free_inputdev:
 	return err;
 }
 
-static int __devexit ft5x06_ts_remove(struct i2c_client *client)
+static int ft5x06_ts_remove(struct i2c_client *client)
 {
 	struct ft5x06_ts_data *data = i2c_get_clientdata(client);
 
@@ -1960,20 +1961,20 @@ MODULE_DEVICE_TABLE(i2c, ft5x06_ts_id);
 
 #ifdef CONFIG_OF
 static struct of_device_id ft5x06_match_table[] = {
-	{ .compatible = "focaltech,5x06",},
+	{ .compatible = "focaltech,5x06", },
 	{ },
 };
-#else
-#define ft5x06_match_table NULL
 #endif
 
 static struct i2c_driver ft5x06_ts_driver = {
 	.probe = ft5x06_ts_probe,
-	.remove = __devexit_p(ft5x06_ts_remove),
+	.remove = ft5x06_ts_remove,
 	.driver = {
 		   .name = "ft5x06_ts",
 		   .owner = THIS_MODULE,
-		.of_match_table = ft5x06_match_table,
+#ifdef CONFIG_OF
+		   .of_match_table = ft5x06_match_table,
+#endif
 #ifdef CONFIG_PM
 		   .pm = &ft5x06_ts_pm_ops,
 #endif

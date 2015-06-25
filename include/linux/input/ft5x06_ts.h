@@ -18,11 +18,6 @@
 #ifndef __LINUX_FT5X06_TS_H__
 #define __LINUX_FT5X06_TS_H__
 
-#define FT5X06_ID		0x55
-#define FT5X16_ID		0x0A
-#define FT5X36_ID		0x14
-#define FT6X06_ID		0x06
-
 struct fw_upgrade_info {
 	bool auto_cal;
 	u16 delay_aa;
