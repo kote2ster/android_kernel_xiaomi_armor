@@ -1759,10 +1759,10 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "Device ID = 0x%x\n", reg_value);
 
-	/*if ((pdata->family_id != reg_value) && (!pdata->ignore_id_check)) {
+	if ((pdata->family_id != reg_value) && (!pdata->ignore_id_check)) {
 		dev_err(&client->dev, "%s:Unsupported controller\n", __func__);
 		goto free_reset_gpio;
-	}*/
+	}
 
 	data->family_id = pdata->family_id;
 
