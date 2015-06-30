@@ -43,8 +43,6 @@
 #define FT_SUSPEND_LEVEL 1
 #endif
 
-#define FT_DRIVER_VERSION		0x02
-
 #define FT_MAX_ID			0x0F
 
 /*register address*/
@@ -101,14 +99,24 @@
 #define FT_FW_MIN_SIZE			8
 #define FT_FW_MAX_SIZE			32768
 
-/* Firmware file is not supporting minor and sub minor so use 0 */
-#define FT_FW_FILE_MAJ_VER(x)	((x)->data[(x)->size - 2])
-#define FT_FW_FILE_VENDOR_ID(x)	((x)->data[(x)->size - 1])
+#define FT_FW_FILE_SIZE_HI_POS 8
+#define FT_FW_FILE_SIZE_LO_POS 7
+#define FT_FW_FILE_SIZE_BITFLIP_HI_POS 6
+#define FT_FW_FILE_SIZE_BITFLIP_LO_POS 5
+#define FT_FW_FILE_CHECKSUM_POS 4
+#define FT_FW_FILE_CHECKSUM_BITFLIP_POS 3
+#define FT_FW_FILE_VERSION_POS 2
+#define FT_FW_FILE_VENDOR_ID_POS 1
 
-#define FT_FW_CHECK(x) \
-	(((x)->data[(x)->size - 8] ^ (x)->data[(x)->size - 6]) == 0xFF \
-	&& (((x)->data[(x)->size - 7] ^ (x)->data[(x)->size - 5]) == 0xFF \
-	&& (((x)->data[(x)->size - 3] ^ (x)->data[(x)->size - 4]) == 0xFF)))
+#define FT_FW_FILE_SIZE(fw) (fw->data[fw->size - FT_FW_FILE_SIZE_HI_POS] << 8 | fw->data[fw->size - FT_FW_FILE_SIZE_LO_POS])
+#define FT_FW_FILE_CHECKSUM(fw) fw->data[fw->size - FT_FW_FILE_CHECKSUM_POS]
+#define FT_FW_FILE_VERSION(fw) fw->data[fw->size - FT_FW_FILE_VERSION_POS]
+#define FT_FW_FILE_VENDOR_ID(fw) fw->data[fw->size - FT_FW_FILE_VENDOR_ID_POS]
+
+#define FT_FW_CHECK(fw) \
+	((fw->data[fw->size - FT_FW_FILE_SIZE_HI_POS] ^ fw->data[fw->size - FT_FW_FILE_SIZE_BITFLIP_HI_POS]) == 0xFF && \
+	(fw->data[fw->size - FT_FW_FILE_SIZE_LO_POS] ^ fw->data[fw->size - FT_FW_FILE_SIZE_BITFLIP_LO_POS]) == 0xFF && \
+	(fw->data[fw->size - FT_FW_FILE_CHECKSUM_POS] ^ fw->data[fw->size - FT_FW_FILE_CHECKSUM_BITFLIP_POS]) == 0xFF)
 
 #define FT_MAX_TRIES			5
 #define FT_RETRY_DLY			20
@@ -160,13 +168,11 @@
 		"model\t\t= 0x%x\n" \
 		"name\t\t= %s\n" \
 		"max_touches\t= %d\n" \
-		"drv_ver\t\t= 0x%x\n" \
 		"fw_name\t\t= %s\n" \
 		"fw_ver\t\t= %d\n", \
 		id, \
 		name, \
 		max_tch, \
-		FT_DRIVER_VERSION, \
 		fw_name, \
 		fw_ver \
 	)
@@ -312,7 +318,7 @@ static void ft5x06_update_fw_vendor_id(struct ft5x06_ts_data *data)
 	if (err < 0)
 		dev_err(&client->dev, "fw vendor id read failed");
 
-	dev_info(&client->dev, "Firmware vendor = %d\n", data->fw_vendor_id);
+	dev_info(&client->dev, "Firmware vendor = %X\n", data->fw_vendor_id);
 }
 
 static void ft5x06_gestures_unblock(unsigned long lparam)
@@ -978,8 +984,8 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 {
 	struct ft5x06_ts_data *data = dev_get_drvdata(dev);
 	const struct firmware *fw = NULL;
-	int rc;
-	u8 fw_file_maj, fw_file_vendor_id;
+	int rc, i;
+	u8 fw_file_maj, fw_file_vendor_id, checksum;
 	bool fw_upgrade = false;
 
 	if (data->suspended) {
@@ -1004,25 +1010,48 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 	// This code used to change vendor of dt2w fw realtime.
 	// This way easier to test then hexedit the fw.
 	// Needed to fix hw dt2w on every vendor's chip.
-	if(fw->data[fw->size - 2] == fw->data[0x0000505A] && fw->data[fw->size] == fw->data[0x00005A60])
+#define HEX_FW_VERSION_ADDR 0x505A
+#define HEX_FW_VENDOR_ADDR 0x5060
+	if(FT_FW_FILE_VERSION(fw) == fw->data[HEX_FW_VERSION_ADDR] &&
+		FT_FW_FILE_VENDOR_ID(fw) == fw->data[HEX_FW_VENDOR_ADDR])
 	{
-		// HACK: Bypass read-only whit a cast.
-		((u8 *)fw->data)[fw->size - 2] = 0; //fooder version
-		((u8 *)fw->data)[0x0000505A] = 0; //fw version
+		u8 *fw_data;
+		struct firmware *new_fw;
+
+		fw_data = devm_kzalloc(&data->client->dev, fw->size, GFP_KERNEL);
+		memcpy(fw_data, fw->data, fw->size);
+
+		dev_info(dev, "Firware version and vendor can be changed!\n");
+
+		fw_data[fw->size - FT_FW_FILE_VERSION_POS] = 1;
+		fw_data[HEX_FW_VERSION_ADDR] = 1;
 
 		// 0x51 - OFilm, 0x89 - Wintek, 0x3B - Biel
-		((u8 *)fw->data)[fw->size] = 0x89; //fooder vendor
-		((u8 *)fw->data)[0x00005A60] = 0x89; //fw vendor
+		fw_data[fw->size - FT_FW_FILE_VENDOR_ID_POS] = 0x89;
+		fw_data[HEX_FW_VENDOR_ADDR] = 0x89;
+
+		checksum = 0;
+		for(i = 0; i < FT_FW_FILE_SIZE(fw); ++i)
+			checksum = fw_data[i] ^ checksum;
+
+		fw_data[fw->size - FT_FW_FILE_CHECKSUM_POS] = checksum;
+		fw_data[fw->size - FT_FW_FILE_CHECKSUM_BITFLIP_POS] = ~checksum;
+
+		new_fw->size = fw->size;
+		new_fw->data = fw_data;
+		new_fw->pages = fw->pages;
+
+		fw = new_fw;
 	}
 	// TEST CODE
 
-	fw_file_maj = FT_FW_FILE_MAJ_VER(fw);
+	fw_file_maj = FT_FW_FILE_VERSION(fw);
 	fw_file_vendor_id = FT_FW_FILE_VENDOR_ID(fw);
 
-	dev_info(dev, "Current firmware vendor: %X\n", data->fw_vendor_id);
 	dev_info(dev, "Current firmware version: %d\n", data->fw_ver);
-	dev_info(dev, "New firmware vendor: %X\n", fw_file_vendor_id);
+	dev_info(dev, "Current firmware vendor: %X\n", data->fw_vendor_id);
 	dev_info(dev, "New firmware version: %d\n", fw_file_maj);
+	dev_info(dev, "New firmware vendor: %X\n", fw_file_vendor_id);
 
 	if (force)
 		fw_upgrade = true;
@@ -1037,11 +1066,21 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 
 	/* start firmware upgrade */
 	if (FT_FW_CHECK(fw)) {
-		rc = ft5x06_fw_upgrade_start(data->client, fw->data, fw->size);
-		if (rc < 0)
-			dev_err(dev, "update failed (%d). try later...\n", rc);
-		else if (data->pdata->info.auto_cal)
-			ft5x06_auto_cal(data->client);
+		checksum = 0;
+		for(i = 0; i < FT_FW_FILE_SIZE(fw); ++i)
+			checksum = fw->data[i] ^ checksum;
+
+		if(checksum == FT_FW_FILE_CHECKSUM(fw))
+		{
+			rc = ft5x06_fw_upgrade_start(data->client, fw->data, fw->size);
+			if (rc < 0)
+				dev_err(dev, "update failed (%d). try later...\n", rc);
+			else if (data->pdata->info.auto_cal)
+				ft5x06_auto_cal(data->client);
+		} else {
+			dev_err(dev, "FW invalid checksum\n");
+			rc = -EIO;
+		}
 	} else {
 		dev_err(dev, "FW format error\n");
 		rc = -EIO;
@@ -1720,16 +1759,16 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "Device ID = 0x%x\n", reg_value);
 
-	if ((pdata->family_id != reg_value) && (!pdata->ignore_id_check)) {
+	/*if ((pdata->family_id != reg_value) && (!pdata->ignore_id_check)) {
 		dev_err(&client->dev, "%s:Unsupported controller\n", __func__);
 		goto free_reset_gpio;
-	}
+	}*/
 
 	data->family_id = pdata->family_id;
 
 	err = request_threaded_irq(client->irq, NULL,
 				ft5x06_ts_interrupt,
-				pdata->irqflags | IRQF_ONESHOT,
+				pdata->irqflags | IRQF_ONESHOT | IRQF_NO_SUSPEND,
 				client->dev.driver->name, data);
 	if (err) {
 		dev_err(&client->dev, "request irq failed\n");
