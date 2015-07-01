@@ -93,7 +93,7 @@
 			focaltech,hard-reset-delay-ms = <20>;
 			focaltech,soft-reset-delay-ms = <150>;
 			focaltech,num-max-touches = <5>;
-			focaltech,fw-name = "ft5336_firmware_wintek_dt2w.fw";
+			focaltech,fw-name = "ft5336_firmware_wintek.fw";
 			focaltech,fw-delay-aa-ms = <30>;
 			focaltech,fw-delay-55-ms = <30>;
 			focaltech,fw-upgrade-id1 = <0x79>;

@@ -57,9 +57,8 @@
 #define FT_REG_FW_VER			0xA6 //ID_G_FIRMID - Firmware ID
 #define FT_REG_FW_VENDOR_ID		0xA8 //ID_G_VENDOR - Vendor ID
 #define FT_REG_ECC			0xCC
-#define FT_REG_GESTURES_0		0xD0
-#define FT_REG_GESTURES_1		0xD1
-#define FT_REG_GESTURES_2		0xD2
+#define FT_REG_GESTURES_ENABLE		0xD0
+#define FT_REG_GESTURES_FLAGS		0xD1
 #define FT_REG_GESTURES_OUTPUT		0xD3
 
 /* power register bits*/
@@ -348,7 +347,7 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 
 	if(data->gestures_enabled)
 	{
-		ft5x0x_read_reg(data->client, FT_REG_GESTURES_0, &gesturebuf);
+		ft5x0x_read_reg(data->client, FT_REG_GESTURES_ENABLE, &gesturebuf);
 		if(gesturebuf)
 		{
 			if(data->gestures_blocked)
@@ -361,6 +360,8 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 				dev_err(&data->client->dev, "%s: read touchdata failed.\n", __func__);
 				return IRQ_HANDLED;
 			}
+
+			dev_info(&data->client->dev, "%s: Gesture detected: 0x%X (%i)\n", __func__, gesturebuf, gesturebuf);
 
 			if(gesturebuf == FT_GESTURE_DOUBLECLICK)
 			{
@@ -561,10 +562,8 @@ static int ft5x06_ts_suspend(struct device *dev)
 
 	if(data->gestures_enabled)
 	{
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_0, 0x01);
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_1, 0x3f);
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_2, 0x3f);
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_OUTPUT, 0x00);
+		ft5x0x_write_reg(data->client, FT_REG_GESTURES_ENABLE, 1);
+		ft5x0x_write_reg(data->client, FT_REG_GESTURES_FLAGS, 1 << 4);
 
 		data->suspended = true;
 
@@ -644,9 +643,8 @@ static int ft5x06_ts_resume(struct device *dev)
 
 	if(data->gestures_enabled)
 	{
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_0, 0x00);
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_1, 0x00);
-		ft5x0x_write_reg(data->client, FT_REG_GESTURES_2, 0x00);
+		ft5x0x_write_reg(data->client, FT_REG_GESTURES_ENABLE, 0x00);
+		ft5x0x_write_reg(data->client, FT_REG_GESTURES_FLAGS, 0x00);
 
 		disable_irq_wake(data->client->irq);
 
@@ -993,7 +991,7 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 		return -EBUSY;
 	}
 
-	rc = request_firmware(&fw, data->fw_name, dev);
+	rc = request_firmware(&fw, /*data->fw_name*/ "ft5336_firmware_wintek.fw", dev);
 	if (rc < 0) {
 		dev_err(dev, "Request firmware failed - %s (%d)\n",
 						data->fw_name, rc);
@@ -1039,7 +1037,7 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 			else if (data->pdata->info.auto_cal)
 				ft5x06_auto_cal(data->client);
 		} else {
-			dev_err(dev, "FW invalid checksum\n");
+			dev_err(dev, "FW invalid checksum (%X != %X)\n", checksum, FT_FW_FILE_CHECKSUM(fw));
 			rc = -EIO;
 		}
 	} else {
