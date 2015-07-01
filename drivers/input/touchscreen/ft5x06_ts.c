@@ -99,14 +99,14 @@
 #define FT_FW_MIN_SIZE			8
 #define FT_FW_MAX_SIZE			32768
 
-#define FT_FW_FILE_SIZE_HI_POS 8
-#define FT_FW_FILE_SIZE_LO_POS 7
-#define FT_FW_FILE_SIZE_BITFLIP_HI_POS 6
-#define FT_FW_FILE_SIZE_BITFLIP_LO_POS 5
-#define FT_FW_FILE_CHECKSUM_POS 4
-#define FT_FW_FILE_CHECKSUM_BITFLIP_POS 3
-#define FT_FW_FILE_VERSION_POS 2
-#define FT_FW_FILE_VENDOR_ID_POS 1
+#define FT_FW_FILE_SIZE_HI_POS		8
+#define FT_FW_FILE_SIZE_LO_POS		7
+#define FT_FW_FILE_SIZE_BITFLIP_HI_POS	6
+#define FT_FW_FILE_SIZE_BITFLIP_LO_POS	5
+#define FT_FW_FILE_CHECKSUM_POS		4
+#define FT_FW_FILE_CHECKSUM_BITFLIP_POS	3
+#define FT_FW_FILE_VERSION_POS		2
+#define FT_FW_FILE_VENDOR_ID_POS	1
 
 #define FT_FW_FILE_SIZE(fw) (fw->data[fw->size - FT_FW_FILE_SIZE_HI_POS] << 8 | fw->data[fw->size - FT_FW_FILE_SIZE_LO_POS])
 #define FT_FW_FILE_CHECKSUM(fw) fw->data[fw->size - FT_FW_FILE_CHECKSUM_POS]
@@ -1005,45 +1005,6 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 		rc = -EIO;
 		goto rel_fw;
 	}
-
-	// TEST CODE
-	// This code used to change vendor of dt2w fw realtime.
-	// This way easier to test then hexedit the fw.
-	// Needed to fix hw dt2w on every vendor's chip.
-#define HEX_FW_VERSION_ADDR 0x505A
-#define HEX_FW_VENDOR_ADDR 0x5060
-	if(FT_FW_FILE_VERSION(fw) == fw->data[HEX_FW_VERSION_ADDR] &&
-		FT_FW_FILE_VENDOR_ID(fw) == fw->data[HEX_FW_VENDOR_ADDR])
-	{
-		u8 *fw_data;
-		struct firmware *new_fw;
-
-		fw_data = devm_kzalloc(&data->client->dev, fw->size, GFP_KERNEL);
-		memcpy(fw_data, fw->data, fw->size);
-
-		dev_info(dev, "Firware version and vendor can be changed!\n");
-
-		fw_data[fw->size - FT_FW_FILE_VERSION_POS] = 1;
-		fw_data[HEX_FW_VERSION_ADDR] = 1;
-
-		// 0x51 - OFilm, 0x89 - Wintek, 0x3B - Biel
-		fw_data[fw->size - FT_FW_FILE_VENDOR_ID_POS] = 0x89;
-		fw_data[HEX_FW_VENDOR_ADDR] = 0x89;
-
-		checksum = 0;
-		for(i = 0; i < FT_FW_FILE_SIZE(fw); ++i)
-			checksum = fw_data[i] ^ checksum;
-
-		fw_data[fw->size - FT_FW_FILE_CHECKSUM_POS] = checksum;
-		fw_data[fw->size - FT_FW_FILE_CHECKSUM_BITFLIP_POS] = ~checksum;
-
-		new_fw->size = fw->size;
-		new_fw->data = fw_data;
-		new_fw->pages = fw->pages;
-
-		fw = new_fw;
-	}
-	// TEST CODE
 
 	fw_file_maj = FT_FW_FILE_VERSION(fw);
 	fw_file_vendor_id = FT_FW_FILE_VENDOR_ID(fw);
