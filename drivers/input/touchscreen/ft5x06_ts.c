@@ -991,7 +991,7 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 		return -EBUSY;
 	}
 
-	rc = request_firmware(&fw, /*data->fw_name*/ "ft5336_firmware_wintek.fw", dev);
+	rc = request_firmware(&fw, data->fw_name, dev);
 	if (rc < 0) {
 		dev_err(dev, "Request firmware failed - %s (%d)\n",
 						data->fw_name, rc);
